@@ -35,6 +35,45 @@ npm run dev
 Frontend default URL:
 - `http://localhost:3000`
 
+## Docker Setup (Frontend + Backend + Postgres)
+
+From project root:
+
+```powershell
+docker compose up --build
+```
+
+Run in background:
+
+```powershell
+docker compose up --build -d
+```
+
+Stop containers:
+
+```powershell
+docker compose down
+```
+
+Stop and remove DB volume too:
+
+```powershell
+docker compose down -v
+```
+
+Services:
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8000`
+- API Docs: `http://localhost:8000/docs`
+- Postgres: `localhost:5432`
+
+Docker files added:
+- `POS BackendChatGPT/POS Backend/Dockerfile`
+- `POS BackendChatGPT/POS Backend/.dockerignore`
+- `POS Frontend/POS Frontend/Dockerfile`
+- `POS Frontend/POS Frontend/.dockerignore`
+- `docker-compose.yml`
+
 ## Environment Files
 
 - Backend example: `POS BackendChatGPT/POS Backend/.env.example`

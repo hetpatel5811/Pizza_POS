@@ -1,0 +1,61 @@
+name: pizza_pos
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pizza_pos_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pizza_pos
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pizza_pos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: "./POS BackendChatGPT/POS Backend"
+      dockerfile: Dockerfile
+    container_name: pizza_pos_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      APP_NAME: Pizza POS
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/pizza_pos
+      CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+      JWT_SECRET: change-this-in-production
+      JWT_ALGORITHM: HS256
+      BOOTSTRAP_ADMIN_KEY: change-this-too
+      STRIPE_SECRET_KEY: ""
+      STRIPE_WEBHOOK_SECRET: ""
+      ENABLE_DEMO_PAYMENTS: "true"
+
+  frontend:
+    build:
+      context: "./POS Frontend/POS Frontend"
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api
+    container_name: pizza_pos_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+
+volumes:
+  postgres_data:

@@ -566,7 +566,7 @@ export default function EmployeePanel() {
                     </div>
                     <div className="min-w-0">
                       <h1 className="truncate text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Employee Panel</h1>
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Fresh &amp; Hot Pizza | Sturlings, Canada</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Fresh &amp; Hot Pizza Staff Console</p>
                     </div>
                   </div>
 

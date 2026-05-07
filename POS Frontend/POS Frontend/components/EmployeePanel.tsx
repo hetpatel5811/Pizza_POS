@@ -27,7 +27,7 @@ function formatHMS(totalSeconds: number) {
 }
 
 function fmtTime(dtIso?: string | null) {
-  if (!dtIso) return "—";
+  if (!dtIso) return "--";
   const d = new Date(dtIso);
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -41,11 +41,17 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-/* Full-width shell: NO max-width = no left/right “empty space” on big displays */
-const SHELL = "mx-auto w-full px-3 sm:px-6 lg:px-10 2xl:px-14";
+/* Full-width shell optimized for dashboard density across wide screens */
+const SHELL = "mx-auto w-full px-3 sm:px-6 lg:px-9 xl:px-12 2xl:px-16";
 
 type ScheduleItem = NonNullable<ClockStatusRead["today_schedule"]>[number];
 type ScheduleId = ScheduleItem["id"];
+type ScheduleInsights = {
+  activeId: ScheduleId | null;
+  upcomingId: ScheduleId | null;
+  progress: number | null;
+  activeLabel: string;
+};
 
 
 /* ------------------------------- icons ----------------------------------- */
@@ -62,7 +68,8 @@ function Icon({
     | "coffee"
     | "check"
     | "spark"
-    | "shield";
+    | "shield"
+    | "box";
   className?: string;
 }) {
   const common = {
@@ -155,6 +162,14 @@ function Icon({
           />
         </svg>
       );
+    case "box":
+      return (
+        <svg {...common}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5 12 3l9 4.5-9 4.5L3 7.5z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5V16.5L12 21l9-4.5V7.5" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 12v9" />
+        </svg>
+      );
   }
 }
 
@@ -177,14 +192,26 @@ function Spinner({ className = "h-4 w-4" }: { className?: string }) {
 function StatusPill({ state }: { state: ClockStatusRead["state"] | undefined }) {
   const meta =
     state === "ON_SHIFT"
-      ? { label: "On shift", cls: "bg-emerald-500/15 text-emerald-950 ring-emerald-500/25", dot: "bg-emerald-500" }
+      ? {
+          label: "On shift",
+          cls: "bg-emerald-500/18 text-emerald-900 ring-emerald-500/35 shadow-[0_8px_18px_-10px_rgba(16,185,129,0.8)]",
+          dot: "bg-emerald-500",
+        }
       : state === "ON_BREAK"
-        ? { label: "On break", cls: "bg-amber-500/15 text-amber-950 ring-amber-500/25", dot: "bg-amber-500" }
-        : { label: "Off duty", cls: "bg-slate-500/10 text-slate-900 ring-slate-400/20", dot: "bg-slate-400" };
+        ? {
+            label: "On break",
+            cls: "bg-amber-500/18 text-amber-900 ring-amber-500/35 shadow-[0_8px_18px_-10px_rgba(245,158,11,0.8)]",
+            dot: "bg-amber-500",
+          }
+        : {
+            label: "Off duty",
+            cls: "bg-slate-500/10 text-slate-900 ring-slate-400/30",
+            dot: "bg-slate-400",
+          };
 
   return (
-    <div className={cx("inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-extrabold ring-1", meta.cls)}>
-      <span className={cx("h-2 w-2 rounded-full", meta.dot)} />
+    <div className={cx("inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-extrabold ring-1", meta.cls)}>
+      <span className={cx("h-2.5 w-2.5 rounded-full animate-pulse", meta.dot)} />
       {meta.label}
     </div>
   );
@@ -194,8 +221,8 @@ function GlassPanel({ className, children }: { className?: string; children: Rea
   return (
     <div
       className={cx(
-        "rounded-3xl bg-white/65 backdrop-blur-xl ring-1 ring-white/40",
-        "shadow-[0_22px_70px_-45px_rgba(0,0,0,0.35)]",
+        "rounded-[30px] border border-white/70 bg-white/76 backdrop-blur-2xl",
+        "shadow-[0_28px_55px_-35px_rgba(15,23,42,0.45)]",
         className
       )}
     >
@@ -221,10 +248,10 @@ function RingProgress({
   const dash = p === null ? c : c * (1 - p);
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-5">
       <div className="relative">
         <svg width={size} height={size} className="block">
-          <circle cx={size / 2} cy={size / 2} r={r} stroke="currentColor" strokeWidth={stroke} className="text-slate-200" />
+          <circle cx={size / 2} cy={size / 2} r={r} stroke="currentColor" strokeWidth={stroke} className="text-slate-200/90" />
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -234,22 +261,22 @@ function RingProgress({
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={dash}
-            className="text-indigo-600 transition-[stroke-dashoffset] duration-500"
+            className="text-indigo-600 transition-[stroke-dashoffset] duration-500 drop-shadow-[0_5px_10px_rgba(79,70,229,0.4)]"
             style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
           />
         </svg>
 
-        <div className="absolute inset-0 grid place-items-center">
+        <div className="absolute inset-0 grid place-items-center rounded-full bg-white/55 ring-1 ring-slate-100/70">
           <div className="text-center">
             <div className="text-xs font-semibold text-slate-500">{label}</div>
-            <div className="mt-0.5 text-lg font-extrabold tabular-nums text-slate-900">{p === null ? "—" : `${Math.round(p * 100)}%`}</div>
+            <div className="mt-0.5 text-lg font-extrabold tabular-nums text-slate-900">{p === null ? "--" : `${Math.round(p * 100)}%`}</div>
           </div>
         </div>
       </div>
 
       <div className="min-w-0">
         <div className="text-sm font-extrabold text-slate-900">Shift progress</div>
-        <div className="mt-1 text-sm text-slate-600">{sublabel ?? "Based on schedule start/end."}</div>
+        <div className="mt-1 max-w-52 text-sm text-slate-600">{sublabel ?? "Based on schedule start/end."}</div>
       </div>
     </div>
   );
@@ -266,7 +293,7 @@ function FancyActionButton({
 }: {
   title: string;
   subtitle: string;
-  icon: "play" | "stop" | "coffee" | "check" | "spark" | "shield" | "refresh";
+  icon: "play" | "stop" | "coffee" | "check" | "spark" | "shield" | "refresh" | "box";
   tone: "emerald" | "rose" | "amber" | "cyan" | "indigo";
   disabled?: boolean;
   busy?: boolean;
@@ -292,20 +319,26 @@ function FancyActionButton({
         (disabled || busy) && "opacity-60 cursor-not-allowed active:scale-100"
       )}
     >
-      <div className={cx("absolute inset-0 bg-gradient-to-r", toneMap[tone])} />
-      <div className="relative rounded-3xl bg-white/85 backdrop-blur-xl px-4 py-4">
+      <div className={cx("absolute inset-0 bg-gradient-to-r opacity-95", toneMap[tone])} />
+      <div className="relative rounded-3xl bg-white/90 backdrop-blur-xl px-4 py-4 transition group-hover:bg-white">
         <div className="flex items-start gap-3">
-          <div className={cx("grid h-11 w-11 place-items-center rounded-2xl text-white shadow-sm", "bg-gradient-to-br", toneMap[tone])}>
+          <div
+            className={cx(
+              "grid h-11 w-11 place-items-center rounded-2xl text-white shadow-[0_10px_16px_-8px_rgba(0,0,0,0.45)]",
+              "bg-gradient-to-br",
+              toneMap[tone]
+            )}
+          >
             {busy ? <Spinner className="h-5 w-5" /> : <Icon name={icon} className="h-5 w-5" />}
           </div>
 
           <div className="min-w-0">
-            <div className="text-sm font-extrabold text-slate-900">{busy ? "Working…" : title}</div>
+            <div className="text-sm font-extrabold text-slate-900">{busy ? "Working..." : title}</div>
             <div className="mt-0.5 text-xs text-slate-600">{subtitle}</div>
           </div>
 
           <div className="ml-auto text-[11px] font-semibold text-slate-500">
-            {disabled ? "Unavailable" : busy ? "…" : "Tap"}
+            {disabled ? "Unavailable" : busy ? "..." : "Tap"}
           </div>
         </div>
 
@@ -407,7 +440,7 @@ export default function EmployeePanel() {
         setLiveWorked(baseWorkedRef.current);
         setLiveBreak(baseBreakRef.current + elapsed);
       } else {
-        // OFF_DUTY: keep last known totals (don’t drop to 00:00:00)
+        // OFF_DUTY: keep last known totals (do not drop to 00:00:00)
         setLiveWorked(baseWorkedRef.current);
         setLiveBreak(baseBreakRef.current);
       }
@@ -426,7 +459,7 @@ export default function EmployeePanel() {
   const canClockToggle = isOffDuty || isOnShift; // blocked while on break
   const canBreakToggle = isOnShift || isOnBreak;
 
-  // ✅ Inventory enabled only after clock-in (ON_SHIFT or ON_BREAK)
+  // Inventory enabled only after clock-in (ON_SHIFT or ON_BREAK)
   const canInventory = isOnShift || isOnBreak;
 
   const headline = useMemo(() => {
@@ -441,12 +474,13 @@ export default function EmployeePanel() {
   const schedule = status?.today_schedule ?? [];
 
 
-  const scheduleInsights = useMemo(() => {
+  const scheduleInsights = useMemo<ScheduleInsights>(() => {
     if (!schedule.length) {
       return {
-        activeId: null as ScheduleId | null,
-        upcomingId: null as ScheduleId | null,
-        progress: null as number | null,
+        activeId: null,
+        upcomingId: null,
+        progress: null,
+        activeLabel: "No shifts scheduled for today",
       };
     }
 
@@ -468,14 +502,14 @@ export default function EmployeePanel() {
     }
 
     const activeLabel = active
-      ? `Active: ${fmtTime(active.start_dt)} – ${fmtTime(active.end_dt)}`
+      ? `Active: ${fmtTime(active.start_dt)} - ${fmtTime(active.end_dt)}`
       : upcoming
-        ? `Next: ${fmtTime(upcoming.start_dt)} – ${fmtTime(upcoming.end_dt)}`
+        ? `Next: ${fmtTime(upcoming.start_dt)} - ${fmtTime(upcoming.end_dt)}`
         : "No more shifts today";
 
     return {
-      activeId: (active?.id ?? null) as ScheduleId | null,
-      upcomingId: (upcoming?.id ?? null) as ScheduleId | null,
+      activeId: active?.id ?? null,
+      upcomingId: upcoming?.id ?? null,
       progress,
       activeLabel,
     };
@@ -489,7 +523,7 @@ export default function EmployeePanel() {
       await fn();
       await refresh();
 
-      // after any action, also push cache so it never “drops”
+      // after any action, also push cache so it never "drops"
     } catch (e: any) {
       setErr(e?.message || "Action failed");
     } finally {
@@ -499,57 +533,60 @@ export default function EmployeePanel() {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-[radial-gradient(1200px_circle_at_20%_0%,rgba(99,102,241,0.20),transparent_55%),radial-gradient(900px_circle_at_80%_10%,rgba(236,72,153,0.18),transparent_50%),radial-gradient(900px_circle_at_60%_100%,rgba(16,185,129,0.16),transparent_55%)]">
+      <div className="min-h-dvh bg-[radial-gradient(1200px_circle_at_15%_-10%,rgba(14,165,233,0.2),transparent_55%),radial-gradient(900px_circle_at_85%_0%,rgba(168,85,247,0.18),transparent_50%),radial-gradient(1100px_circle_at_55%_110%,rgba(16,185,129,0.16),transparent_55%),linear-gradient(145deg,#f6f8ff_0%,#f1f6ff_48%,#f6fbff_100%)]">
         <div className={cx(SHELL, "py-10")}>
-          <div className="h-10 w-72 rounded-2xl bg-white/50 ring-1 ring-white/40 animate-pulse" />
-          <div className="mt-3 h-4 w-96 rounded-2xl bg-white/45 ring-1 ring-white/40 animate-pulse" />
+          <div className="h-10 w-80 rounded-2xl bg-white/60 ring-1 ring-white/70 animate-pulse" />
+          <div className="mt-3 h-4 w-96 rounded-2xl bg-white/55 ring-1 ring-white/70 animate-pulse" />
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 h-[360px] rounded-3xl bg-white/45 ring-1 ring-white/40 animate-pulse" />
-            <div className="lg:col-span-4 h-[360px] rounded-3xl bg-white/45 ring-1 ring-white/40 animate-pulse" />
-            <div className="lg:col-span-12 h-[280px] rounded-3xl bg-white/45 ring-1 ring-white/40 animate-pulse" />
+            <div className="lg:col-span-8 h-[360px] rounded-3xl bg-white/55 ring-1 ring-white/70 animate-pulse" />
+            <div className="lg:col-span-4 h-[360px] rounded-3xl bg-white/55 ring-1 ring-white/70 animate-pulse" />
+            <div className="lg:col-span-12 h-[280px] rounded-3xl bg-white/55 ring-1 ring-white/70 animate-pulse" />
           </div>
-          <div className="mt-6 text-sm font-semibold text-slate-700">Loading…</div>
+          <div className="mt-6 text-sm font-semibold text-slate-700">Loading dashboard...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh bg-[radial-gradient(1200px_circle_at_20%_0%,rgba(99,102,241,0.20),transparent_55%),radial-gradient(900px_circle_at_80%_10%,rgba(236,72,153,0.18),transparent_50%),radial-gradient(900px_circle_at_60%_100%,rgba(16,185,129,0.16),transparent_55%)]">
+    <div className="min-h-dvh bg-[radial-gradient(1200px_circle_at_15%_-10%,rgba(14,165,233,0.2),transparent_55%),radial-gradient(900px_circle_at_85%_0%,rgba(168,85,247,0.18),transparent_50%),radial-gradient(1100px_circle_at_55%_110%,rgba(16,185,129,0.16),transparent_55%),linear-gradient(145deg,#f6f8ff_0%,#f1f6ff_48%,#f6fbff_100%)]">
       {/* subtle pattern overlay */}
-      <div className="pointer-events-none fixed inset-0 -z-10 opacity-[0.22] [background-image:linear-gradient(to_right,rgba(15,23,42,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.08)_1px,transparent_1px)] [background-size:40px_40px]" />
+      <div className="pointer-events-none fixed inset-0 -z-10 opacity-[0.18] [background-image:linear-gradient(to_right,rgba(15,23,42,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.08)_1px,transparent_1px)] [background-size:34px_34px]" />
 
       {/* Top bar */}
       <header className="sticky top-0 z-50">
-        <div className="border-b border-white/40 bg-white/55 backdrop-blur-xl">
-          <div className={cx(SHELL, "py-4")}>
+        <div className="border-b border-white/75 bg-white/72 backdrop-blur-2xl shadow-[0_12px_25px_-20px_rgba(15,23,42,0.65)]">
+          <div className={cx(SHELL, "py-4 md:py-5")}>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="inline-flex items-center gap-2">
-                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 via-fuchsia-600 to-rose-600 text-white shadow-sm">
+                    <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-[#1f6df2] via-[#7d43ff] to-[#f53d84] text-white shadow-[0_12px_20px_-10px_rgba(87,66,255,0.75)]">
                       <Icon name="spark" className="h-5 w-5" />
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Employee Panel</h1>
+                    <div className="min-w-0">
+                      <h1 className="truncate text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Employee Panel</h1>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Fresh &amp; Hot Pizza Staff Console</p>
+                    </div>
                   </div>
 
                   <StatusPill state={status?.state} />
 
-                  <div className="hidden sm:flex items-center gap-2 rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-white/50">
+                  <div className="hidden sm:flex items-center gap-2 rounded-full bg-white/85 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200/70">
                     <Icon name="clock" className="h-4 w-4" />
                     {todayNice}
-                    <span className="mx-1 text-slate-300">•</span>
-                    {nowText || "—"}
+                    <span className="mx-1 text-slate-300">|</span>
+                    {nowText || "--"}
                   </div>
                 </div>
 
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-700">
                   <span className="font-semibold">{headline}</span>
-                  <span className="text-slate-300">•</span>
+                  <span className="text-slate-300">|</span>
                   <span className="text-slate-600">Last updated:</span>
-                  <span className="font-semibold text-slate-900">{lastUpdatedText || "—"}</span>
-                  <span className="text-slate-300">•</span>
-                  <span className="text-slate-600">{(scheduleInsights as any).activeLabel}</span>
+                  <span className="font-semibold text-slate-900">{lastUpdatedText || "--"}</span>
+                  <span className="text-slate-300">|</span>
+                  <span className="text-slate-600">{scheduleInsights.activeLabel}</span>
                 </div>
               </div>
 
@@ -558,8 +595,8 @@ export default function EmployeePanel() {
                   type="button"
                   onClick={() => refresh().catch(() => {})}
                   className={cx(
-                    "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-extrabold text-white shadow-sm",
-                    "bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-rose-600 hover:brightness-[1.03]",
+                    "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_12px_20px_-10px_rgba(124,58,237,0.9)]",
+                    "bg-gradient-to-r from-[#1f6df2] via-[#7d43ff] to-[#f53d84] hover:brightness-[1.05]",
                     "focus:outline-none focus:ring-2 focus:ring-slate-400/40 focus:ring-offset-2"
                   )}
                 >
@@ -571,15 +608,15 @@ export default function EmployeePanel() {
                   type="button"
                   onClick={logout}
                   className={cx(
-                    "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-extrabold text-white shadow-sm",
-                    "bg-gradient-to-r from-slate-700 to-slate-900 hover:brightness-[1.03]",
+                    "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_12px_20px_-12px_rgba(15,23,42,0.95)]",
+                    "bg-gradient-to-r from-slate-700 to-slate-900 hover:brightness-[1.05]",
                     "focus:outline-none focus:ring-2 focus:ring-slate-400/40 focus:ring-offset-2"
                   )}
                 >
                   Logout
                 </button>
 
-                <div className="hidden md:flex items-center gap-2 rounded-2xl bg-white/70 px-3 py-2 ring-1 ring-white/50">
+                <div className="hidden md:flex items-center gap-2 rounded-2xl bg-white/85 px-3 py-2 ring-1 ring-slate-200/75 shadow-[0_12px_20px_-14px_rgba(15,23,42,0.4)]">
                   <Icon name="shield" className="h-4 w-4 text-slate-600" />
                   <div className="text-xs font-semibold text-slate-700">
                     Clock out blocked on break
@@ -590,7 +627,7 @@ export default function EmployeePanel() {
             </div>
 
             {err ? (
-              <div className="mt-4 rounded-2xl border border-red-200/70 bg-red-50/80 px-4 py-3 text-sm text-red-800">
+              <div className="mt-4 rounded-2xl border border-rose-200/80 bg-rose-50/90 px-4 py-3 text-sm font-medium text-rose-800 shadow-[0_10px_18px_-14px_rgba(244,63,94,0.8)]">
                 {err}
               </div>
             ) : null}
@@ -603,36 +640,36 @@ export default function EmployeePanel() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* LEFT: Live shift hero + actions */}
           <div className="lg:col-span-8 space-y-6">
-            <GlassPanel className="p-6">
+            <GlassPanel className="p-6 md:p-7">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
-                  <div className="text-xs font-semibold text-slate-500 flex items-center gap-2">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50/80 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 ring-1 ring-indigo-200/70">
                     <Icon name="clock" className="h-4 w-4" />
                     Live totals (today)
                   </div>
 
-                  <div className="mt-2 flex flex-wrap items-end gap-x-8 gap-y-4">
+                  <div className="mt-3 flex flex-wrap items-end gap-x-8 gap-y-4">
                     <div>
                       <div className="text-sm font-semibold text-slate-600">Worked</div>
-                      <div className="mt-1 text-5xl sm:text-6xl font-extrabold tracking-tight tabular-nums text-slate-900">
+                      <div className="mt-1 bg-gradient-to-r from-slate-950 via-indigo-800 to-slate-900 bg-clip-text text-5xl font-extrabold tracking-tight tabular-nums text-transparent sm:text-6xl">
                         {formatHMS(liveWorked)}
                       </div>
                     </div>
 
                     <div>
                       <div className="text-sm font-semibold text-slate-600">Break</div>
-                      <div className="mt-1 text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums text-slate-900">
+                      <div className="mt-1 text-3xl font-extrabold tracking-tight tabular-nums text-slate-900 sm:text-4xl">
                         {formatHMS(liveBreak)}
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                    <div className="rounded-2xl bg-white/70 ring-1 ring-white/50 px-4 py-3">
+                    <div className="rounded-2xl border border-indigo-100 bg-white/85 px-4 py-3 shadow-[0_14px_24px_-20px_rgba(99,102,241,0.7)]">
                       <div className="text-xs font-semibold text-slate-500">Shift started</div>
                       <div className="mt-1 font-extrabold tabular-nums text-slate-900">{fmtTime(status?.shift_started_at)}</div>
                     </div>
-                    <div className="rounded-2xl bg-white/70 ring-1 ring-white/50 px-4 py-3">
+                    <div className="rounded-2xl border border-cyan-100 bg-white/85 px-4 py-3 shadow-[0_14px_24px_-20px_rgba(6,182,212,0.7)]">
                       <div className="text-xs font-semibold text-slate-500">Break started</div>
                       <div className="mt-1 font-extrabold tabular-nums text-slate-900">{fmtTime(status?.on_break_started_at)}</div>
                     </div>
@@ -640,19 +677,19 @@ export default function EmployeePanel() {
                 </div>
 
                 <div className="shrink-0">
-                  <RingProgress progress={(scheduleInsights as any).progress} label="Progress" sublabel={(scheduleInsights as any).activeLabel} />
+                  <RingProgress progress={scheduleInsights.progress} label="Progress" sublabel={scheduleInsights.activeLabel} />
                 </div>
               </div>
             </GlassPanel>
 
-            <GlassPanel className="p-6">
+            <GlassPanel className="p-6 md:p-7">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-extrabold text-slate-900">Quick actions</h2>
-                  <p className="mt-1 text-sm text-slate-600">Big buttons, clear states, no confusion.</p>
+                  <h2 className="text-xl font-extrabold text-slate-900">Quick actions</h2>
+                  <p className="mt-1 text-sm text-slate-600">Clear actions with bold feedback for every shift state.</p>
                 </div>
 
-                <div className="hidden sm:flex items-center gap-2 rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-white/50">
+                <div className="hidden sm:flex items-center gap-2 rounded-full bg-white/85 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200/70">
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                   Live
                 </div>
@@ -692,7 +729,7 @@ export default function EmployeePanel() {
                   }
                 />
 
-                {/* ✅ Inventory button (enabled only when clocked-in) */}
+                {/* Inventory button (enabled only when clocked-in) */}
                 <FancyActionButton
                   title="Menu"
                   subtitle="Add / edit pizzas & deals"
@@ -701,6 +738,15 @@ export default function EmployeePanel() {
                   disabled={!canInventory || !!actionLoading}
                   busy={false}
                   onClick={() => router.push("/POS/menu")}
+                />
+                <FancyActionButton
+                  title="Inventory"
+                  subtitle="Stock checks, adjustments, low-stock view"
+                  icon="box"
+                  tone="amber"
+                  disabled={!canInventory || !!actionLoading}
+                  busy={false}
+                  onClick={() => router.push("/POS/inventory")}
                 />
                 <FancyActionButton
                   title="Order"
@@ -726,14 +772,14 @@ export default function EmployeePanel() {
 
           {/* RIGHT: Schedule timeline */}
           <div className="lg:col-span-4">
-            <GlassPanel className="p-6 h-full">
+            <GlassPanel className="h-full p-6 md:p-7">
               <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 via-fuchsia-600 to-rose-600 text-white shadow-sm">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-[#1f6df2] via-[#7d43ff] to-[#f53d84] text-white shadow-[0_10px_16px_-8px_rgba(124,58,237,0.8)]">
                   <Icon name="calendar" className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-lg font-extrabold text-slate-900">Today???s schedule</h2>
-                  <p className="mt-1 text-sm text-slate-600">Timeline view (cleaner than tables).</p>
+                  <h2 className="text-xl font-extrabold text-slate-900">Today's schedule</h2>
+                  <p className="mt-1 text-sm text-slate-600">Timeline view for quick floor planning.</p>
                 </div>
               </div>
 
@@ -741,8 +787,8 @@ export default function EmployeePanel() {
                 {schedule.length ? (
                   <div className="space-y-3">
                     {schedule.map((s) => {
-                      const isActive = (scheduleInsights as any).activeId === s.id;
-                      const isUpcoming = !isActive && (scheduleInsights as any).upcomingId === s.id;
+                      const isActive = scheduleInsights.activeId === s.id;
+                      const isUpcoming = !isActive && scheduleInsights.upcomingId === s.id;
 
                       return (
                         <div
@@ -760,18 +806,16 @@ export default function EmployeePanel() {
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="text-xs font-semibold text-slate-500">Time</div>
-                                <div className="mt-1 font-extrabold tabular-nums text-slate-900">
-                                  {fmtTime(s.start_dt)} ??? {fmtTime(s.end_dt)}
-                                </div>
+                                <div className="mt-1 font-extrabold tabular-nums text-slate-900">{fmtTime(s.start_dt)} - {fmtTime(s.end_dt)}</div>
 
                                 <div className="mt-3 grid grid-cols-1 gap-2">
                                   <div className="text-sm">
                                     <span className="text-slate-500">Role:</span>{" "}
-                                    <span className="font-semibold text-slate-900">{s.role_label ?? "???"}</span>
+                                    <span className="font-semibold text-slate-900">{s.role_label ?? "--"}</span>
                                   </div>
                                   <div className="text-sm">
                                     <span className="text-slate-500">Note:</span>{" "}
-                                    <span className="text-slate-700">{s.note ?? "???"}</span>
+                                    <span className="text-slate-700">{s.note ?? "--"}</span>
                                   </div>
                                 </div>
                               </div>
@@ -798,11 +842,11 @@ export default function EmployeePanel() {
                                 <div className="h-2.5 overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
                                   <div
                                     className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 transition-[width] duration-500"
-                                    style={{ width: `${Math.round(((scheduleInsights as any).progress ?? 0) * 100)}%` }}
+                                    style={{ width: `${Math.round((scheduleInsights.progress ?? 0) * 100)}%` }}
                                   />
                                 </div>
                                 <div className="mt-2 text-xs font-semibold text-slate-600">
-                                  {Math.round(((scheduleInsights as any).progress ?? 0) * 100)}% done
+                                  {Math.round((scheduleInsights.progress ?? 0) * 100)}% done
                                 </div>
                               </div>
                             ) : null}

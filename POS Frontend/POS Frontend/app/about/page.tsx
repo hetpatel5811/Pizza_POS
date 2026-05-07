@@ -5,6 +5,7 @@ import { Footer } from "@/components/footer"
 import { Clock, Users, Award, Pizza } from "lucide-react"
 import { motion } from "framer-motion"
 import { getChefImage } from "@/lib/customer-images"
+import { SmartImage } from "@/components/smart-image"
 
 export default function AboutPage() {
   return (
@@ -20,9 +21,10 @@ export default function AboutPage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <h1 className="font-heading font-bold text-4xl md:text-5xl mb-4 text-balance">About Fresh Pizza</h1>
+            <h1 className="font-heading font-bold text-4xl md:text-5xl mb-4 text-balance">About Fresh &amp; Hot Pizza</h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty">
-              Serving authentic, delicious pizzas in Canada since 2010. Made with passion, served with love.
+              Serving authentic, delicious pizzas in Sturlings, Canada since 2010. Made with passion, served with
+              love.
             </p>
           </motion.div>
 
@@ -36,8 +38,9 @@ export default function AboutPage() {
             >
               <h2 className="font-heading font-bold text-3xl mb-4">Our Story</h2>
               <p className="text-muted-foreground mb-4 leading-relaxed">
-                Fresh Pizza was founded in 2010 with a simple mission: to bring authentic, delicious pizza to our
-                community. What started as a small family-owned pizzeria has grown into a beloved local establishment.
+                Fresh &amp; Hot Pizza was founded in 2010 with a simple mission: to bring authentic, delicious pizza
+                to our community. What started as a small family-owned pizzeria has grown into a beloved local
+                establishment.
               </p>
               <p className="text-muted-foreground leading-relaxed">
                 We believe in using only the finest ingredients, preparing our dough fresh daily, and creating an
@@ -52,7 +55,12 @@ export default function AboutPage() {
               transition={{ duration: 0.6 }}
               className="relative h-80 rounded-lg overflow-hidden"
             >
-              <img src={getChefImage()} alt="Pizza chef" className="h-full w-full object-cover" loading="lazy" />
+              <SmartImage
+                src={getChefImage()}
+                alt="Pizza chef"
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
             </motion.div>
           </div>
 

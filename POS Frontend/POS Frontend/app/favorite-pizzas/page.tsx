@@ -9,6 +9,7 @@ import { Heart, ShoppingCart, Star, Flame, Clock } from "lucide-react"
 import { BackButton } from "@/components/back-button"
 import { motion } from "framer-motion"
 import { getPizzaImageByName } from "@/lib/customer-images"
+import { SmartImage } from "@/components/smart-image"
 
 export default function FavoritePizzasPage() {
   const [favorites] = useState([
@@ -134,8 +135,9 @@ export default function FavoritePizzasPage() {
                 className="bg-background border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all group"
               >
                 <div className="relative">
-                  <img
+                  <SmartImage
                     src={pizza.image || "/placeholder.svg"}
+                    fallbackSrc={getPizzaImageByName(pizza.name)}
                     alt={pizza.name}
                     className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
                   />

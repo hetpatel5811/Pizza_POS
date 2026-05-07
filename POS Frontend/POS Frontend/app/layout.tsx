@@ -1,24 +1,33 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono, Poppins } from "next/font/google"
+import { Geist_Mono, Manrope, Sora } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { Providers } from "./providers"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
-const _poppins = Poppins({
+const sans = Manrope({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-heading",
+  variable: "--font-body",
+  display: "swap",
+})
+
+const heading = Sora({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["400", "600", "700", "800"],
+  display: "swap",
+})
+
+const mono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-code",
   display: "swap",
 })
 
 export const metadata: Metadata = {
-  title: "Fresh Pizza POS - Order Management System",
-  description: "Professional Pizza Point of Sale system for ordering, managing, and tracking pizza orders in Canada",
-  keywords: ["pizza", "pos", "point of sale", "restaurant", "ordering system"],
-  generator: "v0.app",
+  title: "Fresh & Hot Pizza POS - Order Management System",
+  description: "Professional Pizza point-of-sale platform for Canadian pizza stores.",
+  keywords: ["pizza", "pos", "canada", "restaurant", "ordering"],
   icons: {
     icon: [
       {
@@ -41,7 +50,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#dc2626",
+  themeColor: "#d94b2f",
 }
 
 export default function RootLayout({
@@ -51,7 +60,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className={`${sans.variable} ${heading.variable} ${mono.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
         <Analytics />
       </body>

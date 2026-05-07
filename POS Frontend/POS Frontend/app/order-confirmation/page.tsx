@@ -160,8 +160,8 @@ export default function OrderConfirmationPage() {
                 {order?.order_type === "pickup" && (
                   <div>
                     <p className="font-medium mb-1">Pickup at:</p>
-                    <p className="text-gray-700">Fresh Pizza Store</p>
-                    <p className="text-gray-600 text-sm">123 Pizza Street, Toronto</p>
+                    <p className="text-gray-700">Fresh &amp; Hot Pizza Store</p>
+                    <p className="text-gray-600 text-sm">123 Pizza Street, Sturlings, Canada</p>
                     <p className="text-gray-600 text-sm mt-2">Estimated ready in 15-20 minutes</p>
                   </div>
                 )}

@@ -234,7 +234,7 @@ class AppConfig(BaseModel):
     tax_rate: float = 0.13
     default_delivery_fee: float = 2.99
     min_delivery_amount: float = 15.00
-    currency: str = "USD"
+    currency: str = "CAD"
     available_payment_methods: List[str] = ["cash"]
     available_order_types: List[str] = ["delivery", "pickup", "dine_in"]
 

@@ -35,7 +35,7 @@ export default function ContactPage() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative bg-gradient-to-br from-primary via-primary-hover to-secondary py-20 overflow-hidden">
-          <div className="absolute inset-0 bg-[url('/pizza-pattern.png')] opacity-10" />
+          <div className="absolute inset-0 bg-[url('/pizza-pattern.svg')] opacity-10" />
           <div className="container mx-auto px-4 relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -88,8 +88,8 @@ export default function ContactPage() {
                   icon: <Mail className="w-7 h-7 text-primary" />,
                   title: "Email Us",
                   subtitle: "24/7 Response Time",
-                  link: "mailto:info@freshpizza.ca",
-                  linkText: "info@freshpizza.ca",
+                  link: "mailto:info@freshhotpizza.ca",
+                  linkText: "info@freshhotpizza.ca",
                 },
               ].map((contact, index) => (
                 <motion.div
@@ -237,7 +237,7 @@ export default function ContactPage() {
                           <p className="text-muted-foreground leading-relaxed">
                             123 Pizza Street
                             <br />
-                            Toronto, ON M5H 2N2
+                            Sturlings
                             <br />
                             Canada
                           </p>

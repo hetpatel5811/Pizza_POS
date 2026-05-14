@@ -1,4 +1,10 @@
-const BASE_URL = "http://127.0.0.1:8000/api/addresses";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+const BASE_URL = `${API_URL.replace(/\/$/, "")}/addresses`;
+
+async function parseError(res: Response) {
+  const body = await res.json().catch(() => null);
+  return body?.detail || body?.message || JSON.stringify(body) || res.statusText;
+}
 
 export async function getMyAddresses(token: string) {
   const res = await fetch(`${BASE_URL}/me`, {
@@ -6,7 +12,7 @@ export async function getMyAddresses(token: string) {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to fetch addresses");
+    throw new Error(await parseError(res));
   }
 
   return res.json();
@@ -23,7 +29,7 @@ export async function addAddress(token: string, data: any) {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to add address");
+    throw new Error(await parseError(res));
   }
 
   return res.json();
@@ -36,7 +42,7 @@ export async function deleteAddress(token: string, id: number) {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to delete address");
+    throw new Error(await parseError(res));
   }
 
   return res.json();

@@ -2,7 +2,7 @@ from datetime import datetime
 import enum
 from sqlalchemy import (
     Column, String, Integer, Float, Boolean,
-    DateTime, Text, ForeignKey, Index, Enum as SqlEnum
+    DateTime, Text, ForeignKey, Index, Enum as SqlEnum, JSON
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -247,6 +247,29 @@ class OrderItemTopping(Base):
     order_item = relationship("OrderItem", back_populates="toppings")
     topping = relationship("Topping")
 
+
+class UserFavoritePizza(Base):
+    __tablename__ = "user_favorite_pizzas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    menu_item_id = Column(Integer, ForeignKey("menu.id"), nullable=True)
+
+    name = Column(String(150), nullable=False)
+    description = Column(Text, nullable=True)
+    image_url = Column(String(500), nullable=True)
+    price = Column(Float, default=0.0)
+    rating = Column(Float, nullable=True)
+    default_size = Column(String(30), nullable=True)
+    default_crust = Column(String(60), nullable=True)
+    extras = Column(JSON, default=list)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="favorites")
+    menu_item = relationship("MenuItem")
+
 # -----------------------------
 # USER & ADDRESS MODELS
 # -----------------------------
@@ -267,6 +290,7 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    favorites = relationship("UserFavoritePizza", back_populates="user", cascade="all, delete-orphan")
 
     created_at = Column(DateTime, default=datetime.utcnow)
     addresses = relationship("UserAddress", back_populates="user", cascade="all, delete")

@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-from app.routers import menu, orders, payments, cart, config, auth, addresses, employee_panel, inventory, pos_orders
+from app.routers import menu, orders, payments, cart, config, auth, addresses, employee_panel, inventory, pos_orders, favorites
 from app.config import settings
 
 import app.models_pos  
@@ -31,8 +31,9 @@ app.include_router(orders.router, prefix="/api/orders", tags=["orders"])
 app.include_router(payments.router, prefix="/api/payments", tags=["payments"])
 app.include_router(cart.router, prefix="/api/cart", tags=["cart"])
 app.include_router(config.router, prefix="/api/config", tags=["config"])
+app.include_router(favorites.router, prefix="/api/favorites", tags=["favorites"])
 
-# ✅ Employee panel
+# Employee panel
 app.include_router(employee_panel.router, prefix="/api/employee", tags=["employee"])
 app.include_router(inventory.router, prefix="/api/inventory", tags=["inventory"])
 app.include_router(pos_orders.router, prefix="/api/employee", tags=["employee-orders"])

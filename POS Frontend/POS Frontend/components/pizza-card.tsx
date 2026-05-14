@@ -1,122 +1,175 @@
 "use client"
 
+import { useMemo, useState } from "react"
+import { motion } from "framer-motion"
+import { Flame, Heart, Plus, Star } from "lucide-react"
+
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Plus, Flame, Star } from "lucide-react"
-import { useCart } from "@/lib/cart-context"
-import { useState } from "react"
 import { PizzaCustomizer } from "@/components/pizza-customizer"
-import { motion } from "framer-motion"
+import { useCart } from "@/lib/cart-context"
+import { getPizzaImageByName } from "@/lib/customer-images"
+import { type MenuItemRead } from "@/lib/api/menu"
+import { SmartImage } from "@/components/smart-image"
+import { useFavorites } from "@/hooks/useFavorites"
+
+type PizzaCardItem = MenuItemRead & {
+  displayImage?: string
+}
 
 interface PizzaCardProps {
-  pizza: any   // backend response
+  pizza: PizzaCardItem
 }
+
+const currencyFormatter = new Intl.NumberFormat("en-CA", {
+  style: "currency",
+  currency: "CAD",
+})
 
 export function PizzaCard({ pizza }: PizzaCardProps) {
   const { addItem } = useCart()
+  const { toggleFavorite, isFavorite } = useFavorites()
   const [showCustomizer, setShowCustomizer] = useState(false)
 
-  // ⭐ FIX: NORMALIZE PRICES FOR FRONTEND
-  const price = {
-    small: pizza.price_small ?? 0,
-    medium: pizza.price_medium ?? 0,
-    large: pizza.price_large ?? 0,
-    xlarge: pizza.price_xlarge ?? 0,
+  const prices = {
+    small: Number(pizza.price_small ?? 0),
+    medium: Number(pizza.price_medium ?? 0),
+    large: Number(pizza.price_large ?? 0),
   }
+  const baseMediumPrice = prices.medium || prices.small || prices.large || 0
 
-  // ⭐ QUICK ADD (uses normalized price)
+  const displayImage = pizza.displayImage || pizza.image_url || getPizzaImageByName(pizza.name)
+  const liked = isFavorite(pizza.id, pizza.name)
+
+  const sizeOptions = useMemo(
+    () => [
+      { value: "small" as const, label: "Small" as const, price: prices.small },
+      { value: "medium" as const, label: "Medium" as const, price: prices.medium },
+      { value: "large" as const, label: "Large" as const, price: prices.large },
+    ],
+    [prices.large, prices.medium, prices.small]
+  )
+
   const handleQuickAdd = () => {
     addItem({
-      id: pizza.id,
+      id: `${pizza.id}-medium`,
+      menuItemId: pizza.id,
       name: pizza.name,
-      price: price.medium,
+      price: baseMediumPrice,
       size: "medium",
       quantity: 1,
-      image: pizza.image_url,
+      image: displayImage,
+    })
+  }
+
+  const handleToggleFavorite = () => {
+    toggleFavorite({
+      menuItemId: pizza.id,
+      name: pizza.name,
+      description: pizza.description || "Freshly prepared with quality ingredients.",
+      image: displayImage,
+      price: baseMediumPrice,
+      rating: pizza.is_popular ? 4.9 : 4.7,
+      defaultSize: "Medium",
+      defaultCrust: "Hand Tossed",
     })
   }
 
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, y: 50 }}
+        initial={{ opacity: 0, y: 22 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 0.5 }}
-        whileHover={{ y: -8 }}
+        viewport={{ once: true, margin: "-80px" }}
+        transition={{ duration: 0.45 }}
+        whileHover={{ y: -6 }}
+        className="h-full"
       >
-        <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden border-2 hover:border-primary/50 h-full">
-          
-          {/* IMAGE */}
+        <Card className="group flex h-full flex-col overflow-hidden rounded-3xl border border-[#d2b491] bg-[#fffaf1] shadow-[0_14px_28px_rgba(107,63,31,0.14)] transition-all">
           <div className="relative overflow-hidden">
-            <img
-              src={pizza.image_url || "/placeholder.svg"}
+            <SmartImage
+              src={displayImage}
+              fallbackSrc={getPizzaImageByName(pizza.name)}
               alt={pizza.name}
-              className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
+              className="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
 
-            {pizza.is_popular && (
-              <Badge className="absolute top-3 right-3 bg-secondary text-white border-0">
-                <Star className="w-3 h-3 mr-1 fill-white" /> Popular
-              </Badge>
-            )}
+            <div className="absolute left-3 top-3 flex gap-2">
+              {pizza.is_spicy && (
+                <Badge className="border-0 bg-[#d2452f] text-white shadow-sm">
+                  <Flame className="mr-1 h-3 w-3" />
+                  Spicy
+                </Badge>
+              )}
+              {pizza.is_popular && (
+                <Badge className="border-0 bg-[#e6b049] text-[#4a2f1e] shadow-sm">
+                  <Star className="mr-1 h-3 w-3 fill-current" />
+                  Popular
+                </Badge>
+              )}
+            </div>
 
-            {pizza.is_spicy && (
-              <Badge className="absolute top-3 left-3 bg-error text-white border-0">
-                <Flame className="w-3 h-3 mr-1" /> Spicy
-              </Badge>
-            )}
+            <Button
+              type="button"
+              size="icon"
+              variant="secondary"
+              className="absolute right-3 top-3 rounded-full bg-white/90 shadow-md backdrop-blur hover:bg-white"
+              onClick={handleToggleFavorite}
+              aria-label={liked ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart className={`h-4 w-4 ${liked ? "fill-primary text-primary" : "text-slate-600"}`} />
+            </Button>
           </div>
 
-          {/* CONTENT */}
-          <CardContent className="p-4">
-            <h3 className="font-heading font-semibold text-lg mb-2">{pizza.name}</h3>
-            <p className="text-sm text-muted-foreground mb-3">{pizza.description}</p>
+          <CardContent className="flex flex-1 flex-col p-5">
+            <div className="mb-3">
+              <h3 className="font-heading text-xl font-semibold text-[#362014]">{pizza.name}</h3>
+              <p className="mt-1 min-h-10 text-sm leading-relaxed text-foreground/70">{pizza.description || "Freshly prepared with quality ingredients."}</p>
+            </div>
 
-            {/* PRICE DISPLAY */}
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Small</p>
-                <p className="font-bold text-primary">${price.small.toFixed(2)}</p>
+            <div className="mt-auto grid grid-cols-3 gap-2 rounded-2xl border border-[#e0cab0] bg-white/80 p-3 text-sm">
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Small</p>
+                <p className="font-semibold">{currencyFormatter.format(prices.small)}</p>
               </div>
-
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Medium</p>
-                <p className="font-bold text-primary">${price.medium.toFixed(2)}</p>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Medium</p>
+                <p className="font-semibold text-primary">{currencyFormatter.format(prices.medium)}</p>
               </div>
-
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Large</p>
-                <p className="font-bold text-primary">${price.large.toFixed(2)}</p>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Large</p>
+                <p className="font-semibold">{currencyFormatter.format(prices.large)}</p>
               </div>
             </div>
           </CardContent>
 
-          {/* BUTTONS */}
-          <CardFooter className="p-4 pt-0 gap-2">
-            <Button 
-              variant="outline" 
-              className="flex-1 bg-transparent"
+          <CardFooter className="gap-2 p-5 pt-0">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl border-primary/20 bg-white/75"
               onClick={() => setShowCustomizer(true)}
             >
               Customize
             </Button>
 
-            <Button 
-              className="flex-1 bg-primary hover:bg-primary-hover"
-              onClick={handleQuickAdd}
-            >
-              <Plus className="w-4 h-4 mr-1" /> Add
+            <Button className="flex-1 rounded-xl bg-primary hover:bg-primary-hover" onClick={handleQuickAdd}>
+              <Plus className="mr-1 h-4 w-4" />
+              Add
             </Button>
           </CardFooter>
         </Card>
       </motion.div>
 
-      {/* ⭐ CUSTOMIZER FIX — PASS NORMALIZED PRICE */}
       {showCustomizer && (
         <PizzaCustomizer
-          pizza={{ ...pizza, price }}   // THIS FIXES THE CRASH
+          pizza={{
+            id: pizza.id,
+            name: pizza.name,
+            image: displayImage,
+            sizeOptions,
+          }}
           isOpen={showCustomizer}
           onClose={() => setShowCustomizer(false)}
         />

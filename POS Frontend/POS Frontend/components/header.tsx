@@ -1,249 +1,224 @@
-// components/header.tsx
-"use client";
+"use client"
 
-import { useState } from "react";
-import { ShoppingCart, User, Menu, X, LogOut } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Clock3, LogOut, MapPin, Menu, ShoppingCart, User, X } from "lucide-react"
 
-import { Button } from "@/components/ui/button";
-import { useCart } from "@/lib/cart-context";
-import { UserProfile } from "@/components/user-profile";
-import useAuth from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button"
+import { useCart } from "@/lib/cart-context"
+import { UserProfile } from "@/components/user-profile"
+import useAuth from "@/hooks/useAuth"
+
+const NAV_LINKS = [
+  { href: "/#menu", label: "Menu" },
+  { href: "/deals", label: "Deals" },
+  { href: "/track-order", label: "Track Order" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+]
 
 export function Header() {
-  const router = useRouter();
-  const { items, setIsCartOpen } = useCart();
-  const { user, logout } = useAuth(); // logout available
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const router = useRouter()
+  const { items, setIsCartOpen } = useCart()
+  const { user, logout } = useAuth()
 
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const handleCartClick = () => {
-    setIsCartOpen(true);
-  };
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
+
+  const handleCartClick = () => setIsCartOpen(true)
 
   const handleLogout = () => {
-    // logout from useAuth (clears localStorage + state)
-    logout();
-    // navigate to login page after logout for clarity
-    router.push("/login");
-  };
+    logout()
+    router.push("/login")
+  }
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 border-b border-border/70 bg-background/85 backdrop-blur-xl">
+        <div className="hidden md:block border-b border-border/60 bg-[#fff4df] text-[13px] text-foreground/80">
+          <div className="container mx-auto px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-5">
+              <p className="inline-flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-primary" />
+                Sturlings, Canada
+              </p>
+              <p className="inline-flex items-center gap-1.5">
+                <Clock3 className="h-3.5 w-3.5 text-primary" />
+                Open now until 11:00 PM
+              </p>
+            </div>
+            <p className="font-medium">Hand-stretched dough, fresh from the oven</p>
+          </div>
+        </div>
+
         <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white font-heading font-bold text-xl">FP</span>
+          <div className="flex h-20 items-center justify-between gap-3">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-primary to-[#b73722] shadow-md shadow-primary/30">
+                <span className="font-heading text-xl font-bold text-primary-foreground">FP</span>
               </div>
-              <div className="hidden sm:block">
-                <h1 className="font-heading font-bold text-xl text-foreground">Fresh Pizza</h1>
-                <p className="text-xs text-muted-foreground">Point of Sale</p>
+              <div>
+                <h1 className="font-heading text-xl font-semibold leading-tight">Fresh &amp; Hot Pizza</h1>
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Customer Lounge</p>
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/#menu" className="text-sm font-medium hover:text-primary transition-colors">
-                Menu
-              </Link>
-              <Link href="/deals" className="text-sm font-medium hover:text-primary transition-colors">
-                Deals
-              </Link>
-              <Link href="/track-order" className="text-sm font-medium hover:text-primary transition-colors">
-                Track Order
-              </Link>
-              <Link href="/contact" className="text-sm font-medium hover:text-primary transition-colors">
-                Contact
-              </Link>
-              <Link href="/about" className="text-sm font-medium hover:text-primary transition-colors">
-                About Us
-              </Link>
+            <nav className="hidden lg:flex items-center gap-2 rounded-full border border-border/70 bg-card/80 px-3 py-2 shadow-sm">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="rounded-full px-4 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-primary/10 hover:text-primary"
+                >
+                  {link.label}
+                </Link>
+              ))}
             </nav>
 
-            {/* Actions (Login/Signup OR Profile + Logout + Cart + Mobile Menu) */}
-            <div className="flex items-center gap-3">
-
-              {/* Desktop: when NOT logged in → show Login + Signup */}
-              {!user ? (
-                <div className="hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              {user ? (
+                <>
                   <Button
                     variant="outline"
-                    onClick={() => router.push("/login")}
-                    className="px-4"
-                  >
-                    Login
-                  </Button>
-
-                  <Button
-                    variant="default"
-                    onClick={() => router.push("/register")}
-                    className="px-4 bg-primary text-white hover:bg-primary/90"
-                  >
-                    Signup
-                  </Button>
-                </div>
-              ) : (
-                // Desktop: when logged in → REORDERED: Cart first, then Profile, then Logout
-                <div className="hidden md:flex items-center gap-2">
-                  {/* Cart Button - MOVED FIRST */}
-                  <Button
-                    variant="default"
                     size="icon"
-                    className="relative bg-primary hover:bg-primary-hover"
+                    className="relative rounded-xl border-primary/20 bg-card hover:border-primary/50"
                     onClick={handleCartClick}
                     aria-label="Open cart"
                   >
-                    <ShoppingCart className="w-5 h-5" />
+                    <ShoppingCart className="h-5 w-5" />
                     {itemCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-secondary text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 rounded-full bg-primary px-1 text-[11px] font-bold leading-5 text-primary-foreground">
                         {itemCount}
                       </span>
                     )}
                   </Button>
 
-                  {/* Profile Button - MOVED SECOND - CHANGED TO GREEN */}
-                  <Button
-                    variant="default"
-                    size="icon"
-                    onClick={() => setIsProfileOpen(true)}
-                    aria-label="Open profile"
-                    className="bg-green-500 hover:bg-green-600 text-white"
-                  >
-                    <User className="w-5 h-5" />
-                  </Button>
-
-                  {/* Logout Button - MOVED LAST */}
                   <Button
                     variant="outline"
-                    onClick={handleLogout}
-                    className="flex items-center gap-2"
+                    size="icon"
+                    className="hidden md:inline-flex rounded-xl border-primary/20 bg-card hover:border-primary/50"
+                    onClick={() => setIsProfileOpen(true)}
+                    aria-label="Open profile"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <User className="h-5 w-5" />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="hidden md:inline-flex rounded-xl border-primary/20 bg-card px-4 hover:border-primary/50"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
                     Logout
+                  </Button>
+                </>
+              ) : (
+                <div className="hidden md:flex items-center gap-2">
+                  <Button variant="outline" className="rounded-xl" onClick={() => router.push("/login")}>
+                    Login
+                  </Button>
+                  <Button className="rounded-xl bg-primary hover:bg-primary-hover" onClick={() => router.push("/register")}>
+                    Sign Up
                   </Button>
                 </div>
               )}
 
-              {/* Mobile Menu Toggle (visible on small screens) */}
-              <button
-                onClick={() => setMobileMenuOpen((s) => !s)}
-                className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-foreground hover:bg-surface/50"
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden rounded-xl"
+                onClick={() => setMobileMenuOpen((prev) => !prev)}
                 aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               >
-                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile menu panel */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40">
-          {/* Overlay */}
-          <div
-            className="absolute inset-0 bg-black/40"
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button
+            className="absolute inset-0 bg-black/35"
+            aria-label="Close menu overlay"
             onClick={() => setMobileMenuOpen(false)}
-            aria-hidden
           />
 
-          {/* Panel */}
-          <div className="absolute top-16 right-0 left-0 bg-white border-t shadow-lg">
-            <div className="p-4 space-y-3">
-              <nav className="flex flex-col gap-2">
-                <Link href="/#menu" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded hover:bg-gray-100">
-                  Menu
+          <div className="absolute left-4 right-4 top-[5.4rem] rounded-2xl border border-border bg-card p-5 shadow-2xl">
+            <nav className="grid gap-2">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-xl px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-primary/10 hover:text-primary"
+                >
+                  {link.label}
                 </Link>
-                <Link href="/deals" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded hover:bg-gray-100">
-                  Deals
-                </Link>
-                <Link href="/track-order" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded hover:bg-gray-100">
-                  Track Order
-                </Link>
-                <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded hover:bg-gray-100">
-                  Contact
-                </Link>
-                <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded hover:bg-gray-100">
-                  About Us
-                </Link>
-              </nav>
+              ))}
+            </nav>
 
-              <div className="border-t pt-3 flex flex-col gap-2">
-                {!user ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        router.push("/login");
-                      }}
-                      className="w-full"
-                    >
-                      Login
-                    </Button>
-
-                    <Button
-                      variant="default"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        router.push("/register");
-                      }}
-                      className="w-full bg-primary text-white"
-                    >
-                      Signup
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3 px-2">
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold">
-                        {user.name ? user.name.split(" ").map(s => s[0]).slice(0,2).join("").toUpperCase() : "U"}
-                      </div>
-                      <div>
-                        <div className="font-semibold">{user.name}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        setIsProfileOpen(true);
-                      }}
-                      className="w-full"
-                    >
-                      Open Profile
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        handleLogout();
-                      }}
-                      className="w-full"
-                    >
-                      Logout
-                    </Button>
-                  </>
-                )}
-              </div>
+            <div className="mt-4 border-t border-border pt-4 space-y-2">
+              {!user ? (
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl"
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      router.push("/login")
+                    }}
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    className="w-full rounded-xl bg-primary hover:bg-primary-hover"
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      router.push("/register")
+                    }}
+                  >
+                    Sign Up
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl"
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      setIsProfileOpen(true)
+                    }}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    View Profile
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl"
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      handleLogout()
+                    }}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Profile Drawer */}
       <UserProfile isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
     </>
-  );
+  )
 }
 
-export default Header;
+export default Header

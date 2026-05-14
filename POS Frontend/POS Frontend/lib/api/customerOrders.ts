@@ -78,7 +78,7 @@ export function listCustomerOrders(params?: { status?: string; limit?: number; o
   if (params?.limit != null) qs.set("limit", String(params.limit));
   if (params?.offset != null) qs.set("offset", String(params.offset));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
-  return apiFetch<CustomerOrderRead[]>(`/orders${suffix}`, { method: "GET" });
+  return apiFetch<CustomerOrderRead[]>(`/orders/me${suffix}`, { method: "GET" });
 }
 
 export function getCustomerOrder(orderNumber: string) {

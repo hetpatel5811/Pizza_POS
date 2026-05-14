@@ -137,14 +137,49 @@ def list_orders(
     )
     return orders
 
+
+@router.get("/me", response_model=list[schemas.OrderRead])
+def list_my_orders(
+    status_filter: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    q = db.query(models.Order).filter(models.Order.user_id == user.id)
+
+    if status_filter:
+        raw = status_filter.strip().lower()
+        try:
+            status_value = models.OrderStatus(raw)
+        except ValueError:
+            allowed = ", ".join(s.value for s in models.OrderStatus)
+            raise HTTPException(status_code=400, detail=f"Invalid status_filter. Allowed: {allowed}")
+        q = q.filter(models.Order.status == status_value)
+
+    return (
+        q.order_by(models.Order.created_at.desc())
+        .offset(max(0, offset))
+        .limit(min(max(1, limit), 200))
+        .all()
+    )
+
+
 @router.get("/{order_number}", response_model=schemas.OrderRead)
-def get_order(order_number: str, db: Session = Depends(get_db)):
+def get_order(
+    order_number: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
     order = db.query(models.Order).filter(
         models.Order.order_number == order_number
     ).first()
 
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+
+    if _role(user) not in EMPLOYEE_ROLES and order.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not allowed to access this order")
 
     return order
 

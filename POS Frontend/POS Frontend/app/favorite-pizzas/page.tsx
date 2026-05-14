@@ -1,62 +1,161 @@
-"use client"
+﻿"use client"
 
-import { useState } from "react"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Heart, ShoppingCart, Star, Flame, Clock } from "lucide-react"
-import { BackButton } from "@/components/back-button"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
+import { Clock, Heart, ShoppingCart, Star, Trash2 } from "lucide-react"
+
+import { BackButton } from "@/components/back-button"
+import { Footer } from "@/components/footer"
+import { Header } from "@/components/header"
+import { SmartImage } from "@/components/smart-image"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useFavorites } from "@/hooks/useFavorites"
+import useAuth from "@/hooks/useAuth"
+import { useToast } from "@/hooks/use-toast"
+import { type CustomerOrderRead, listCustomerOrders } from "@/lib/api/customerOrders"
+import { useCart } from "@/lib/cart-context"
 import { getPizzaImageByName } from "@/lib/customer-images"
 
+type FavoriteOrderStats = {
+  count: number
+  lastOrderedAt?: string
+}
+
+function normalizeName(value: string) {
+  return value.trim().toLowerCase()
+}
+
+function formatLastOrdered(iso?: string) {
+  if (!iso) return "Not ordered yet"
+
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return "Not ordered yet"
+
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays <= 0) return "today"
+  if (diffDays === 1) return "1 day ago"
+  if (diffDays < 30) return `${diffDays} days ago`
+
+  const diffMonths = Math.floor(diffDays / 30)
+  if (diffMonths === 1) return "1 month ago"
+  if (diffMonths < 12) return `${diffMonths} months ago`
+
+  const diffYears = Math.floor(diffMonths / 12)
+  return diffYears === 1 ? "1 year ago" : `${diffYears} years ago`
+}
+
 export default function FavoritePizzasPage() {
-  const [favorites] = useState([
-    {
-      id: 1,
-      name: "Pepperoni Classic",
-      description: "Traditional pepperoni with extra cheese",
-      price: 14.99,
-      image: getPizzaImageByName("Pepperoni Classic"),
-      rating: 4.8,
-      orders: 45,
-      lastOrdered: "5 days ago",
-      customization: { size: "Large", crust: "Hand Tossed", extras: ["Extra Cheese"] },
-    },
-    {
-      id: 2,
-      name: "BBQ Chicken Deluxe",
-      description: "Grilled chicken with BBQ sauce and red onions",
-      price: 16.99,
-      image: getPizzaImageByName("BBQ Chicken Deluxe"),
-      rating: 4.9,
-      orders: 32,
-      lastOrdered: "2 weeks ago",
-      customization: { size: "Large", crust: "Thin Crust", extras: ["Jalapeños"] },
-    },
-    {
-      id: 3,
-      name: "Veggie Supreme",
-      description: "Fresh vegetables with mozzarella",
-      price: 15.99,
-      image: getPizzaImageByName("Veggie Supreme"),
-      rating: 4.7,
-      orders: 28,
-      lastOrdered: "1 week ago",
-      customization: { size: "Medium", crust: "Hand Tossed", extras: ["Olives", "Mushrooms"] },
-    },
-    {
-      id: 4,
-      name: "Meat Lovers",
-      description: "Loaded with pepperoni, sausage, and bacon",
-      price: 18.99,
-      image: getPizzaImageByName("Meat Lovers"),
-      rating: 4.9,
-      orders: 52,
-      lastOrdered: "3 days ago",
-      customization: { size: "Large", crust: "Pan", extras: ["Extra Meat"] },
-    },
-  ])
+  const { user } = useAuth()
+  const { favorites, removeFavorite } = useFavorites()
+  const { addItem } = useCart()
+  const { toast } = useToast()
+
+  const [orders, setOrders] = useState<CustomerOrderRead[]>([])
+  const [loadingOrders, setLoadingOrders] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    const loadOrders = async () => {
+      if (!user) {
+        setOrders([])
+        setLoadingOrders(false)
+        return
+      }
+
+      try {
+        setLoadingOrders(true)
+        const data = await listCustomerOrders({ limit: 200 })
+        if (!active) return
+        setOrders(Array.isArray(data) ? data : [])
+      } catch {
+        if (!active) return
+        setOrders([])
+      } finally {
+        if (active) setLoadingOrders(false)
+      }
+    }
+
+    loadOrders()
+
+    return () => {
+      active = false
+    }
+  }, [user])
+
+  const orderStatsMap = useMemo(() => {
+    const stats = new Map<string, FavoriteOrderStats>()
+
+    orders.forEach((order) => {
+      order.items.forEach((item) => {
+        const key = normalizeName(item.menu_item_name)
+        const previous = stats.get(key)
+
+        const latestTimestamp = previous?.lastOrderedAt
+          ? Math.max(new Date(previous.lastOrderedAt).getTime(), new Date(order.created_at).getTime())
+          : new Date(order.created_at).getTime()
+
+        stats.set(key, {
+          count: (previous?.count || 0) + Number(item.quantity || 0),
+          lastOrderedAt: Number.isNaN(latestTimestamp) ? previous?.lastOrderedAt : new Date(latestTimestamp).toISOString(),
+        })
+      })
+    })
+
+    return stats
+  }, [orders])
+
+  const favoritesView = useMemo(() => {
+    return favorites.map((favorite) => {
+      const stats = orderStatsMap.get(normalizeName(favorite.name))
+      return {
+        ...favorite,
+        displayImage: favorite.image || getPizzaImageByName(favorite.name),
+        orderCount: stats?.count ?? favorite.orderCount ?? 0,
+        lastOrderedAt: stats?.lastOrderedAt ?? favorite.lastOrderedAt,
+        rating: favorite.rating ?? 4.8,
+      }
+    })
+  }, [favorites, orderStatsMap])
+
+  const totalOrdersFromFavorites = useMemo(
+    () => favoritesView.reduce((sum, favorite) => sum + favorite.orderCount, 0),
+    [favoritesView]
+  )
+
+  const averageRating = useMemo(() => {
+    if (favoritesView.length === 0) return "0.0"
+    const rating = favoritesView.reduce((sum, favorite) => sum + Number(favorite.rating || 0), 0) / favoritesView.length
+    return rating.toFixed(1)
+  }, [favoritesView])
+
+  const handleQuickReorder = (favoriteId: string) => {
+    const favorite = favoritesView.find((item) => item.id === favoriteId)
+    if (!favorite) return
+
+    addItem({
+      id: `${favorite.menuItemId || favorite.id}-favorite-${Date.now()}`,
+      menuItemId: favorite.menuItemId,
+      name: favorite.name,
+      price: Number(favorite.price || 0),
+      size: (favorite.defaultSize || "medium").toLowerCase(),
+      quantity: 1,
+      image: favorite.displayImage,
+      customizations: {
+        crust: favorite.defaultCrust,
+        extraToppings: favorite.extras || [],
+      },
+    })
+
+    toast({
+      title: "Added to cart",
+      description: `${favorite.name} is ready for checkout.`,
+    })
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -65,157 +164,145 @@ export default function FavoritePizzasPage() {
         <div className="container mx-auto px-4 py-8 md:py-12">
           <BackButton />
 
-          {/* Page Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
             className="mb-8"
           >
-            <div className="flex items-center gap-3 mb-3">
-              <Heart className="w-10 h-10 text-primary fill-primary" />
-              <h1 className="font-heading font-bold text-4xl md:text-5xl">Your Favorite Pizzas</h1>
+            <div className="mb-3 flex items-center gap-3">
+              <Heart className="h-10 w-10 fill-primary text-primary" />
+              <h1 className="font-heading text-4xl font-bold md:text-5xl">Your Favorite Pizzas</h1>
             </div>
-            <p className="text-muted-foreground text-lg">Your most loved pizzas, just a click away</p>
+            <p className="text-lg text-muted-foreground">Saved picks that update with your real customer activity.</p>
           </motion.div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
               {
                 label: "Total Favorites",
-                value: favorites.length,
-                icon: <Heart className="w-12 h-12 text-primary/20 fill-primary/20" />,
+                value: favoritesView.length,
                 gradient: "from-primary/10 to-secondary/10",
               },
               {
                 label: "Total Orders",
-                value: favorites.reduce((sum, fav) => sum + fav.orders, 0),
-                icon: <Flame className="w-12 h-12 text-orange-500/20" />,
+                value: totalOrdersFromFavorites,
                 gradient: "from-orange-500/10 to-yellow-500/10",
               },
               {
                 label: "Avg Rating",
-                value: (favorites.reduce((sum, fav) => sum + fav.rating, 0) / favorites.length).toFixed(1),
-                icon: <Star className="w-12 h-12 text-yellow-500/20 fill-yellow-500/20" />,
+                value: averageRating,
                 gradient: "from-green-500/10 to-emerald-500/10",
               },
             ].map((stat, index) => (
               <motion.div
                 key={stat.label}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ scale: 1.03 }}
-                className={`bg-gradient-to-br ${stat.gradient} rounded-lg p-6 border`}
+                transition={{ duration: 0.35, delay: index * 0.08 }}
+                className={`rounded-2xl border bg-gradient-to-br ${stat.gradient} p-6`}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
-                    <p className="font-heading font-bold text-3xl">{stat.value}</p>
-                  </div>
-                  {stat.icon}
-                </div>
+                <p className="text-sm text-muted-foreground">{stat.label}</p>
+                <p className="mt-2 font-heading text-3xl font-bold">{stat.value}</p>
               </motion.div>
             ))}
           </div>
 
-          {/* Favorites Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {favorites.map((pizza, index) => (
-              <motion.div
-                key={pizza.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ y: -5 }}
-                className="bg-background border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all group"
-              >
-                <div className="relative">
-                  <img
-                    src={pizza.image || "/placeholder.svg"}
-                    alt={pizza.name}
-                    className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-4 right-4">
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="rounded-full shadow-lg bg-white/90 backdrop-blur hover:bg-white"
-                    >
-                      <Heart className="w-5 h-5 text-primary fill-primary" />
-                    </Button>
-                  </div>
-                  <div className="absolute bottom-4 left-4 right-4 flex gap-2">
-                    <Badge variant="secondary" className="bg-white/90 backdrop-blur">
-                      <Star className="w-3 h-3 mr-1 fill-yellow-500 text-yellow-500" />
-                      {pizza.rating}
-                    </Badge>
-                    <Badge variant="secondary" className="bg-white/90 backdrop-blur">
-                      {pizza.orders} orders
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <h3 className="font-heading font-bold text-2xl mb-2">{pizza.name}</h3>
-                  <p className="text-muted-foreground mb-4">{pizza.description}</p>
-
-                  {/* Customization Details */}
-                  <div className="bg-muted/50 rounded-lg p-4 mb-4 space-y-2">
-                    <p className="text-sm font-semibold mb-2">Your Usual Order:</p>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">{pizza.customization.size}</Badge>
-                      <Badge variant="outline">{pizza.customization.crust}</Badge>
-                      {pizza.customization.extras.map((extra, idx) => (
-                        <Badge key={idx} variant="outline">
-                          {extra}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="font-heading font-bold text-2xl text-primary">${pizza.price}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                        <Clock className="w-3 h-3" />
-                        Last ordered {pizza.lastOrdered}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button className="flex-1 gap-2">
-                      <ShoppingCart className="w-4 h-4" />
-                      Quick Reorder
-                    </Button>
-                    <Button variant="outline" className="flex-1 bg-transparent">
-                      Customize
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Empty State (if no favorites) */}
-          {favorites.length === 0 && (
+          {favoritesView.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center py-16"
+              transition={{ duration: 0.5 }}
+              className="rounded-2xl border border-dashed bg-background py-16 text-center"
             >
-              <Heart className="w-20 h-20 text-muted-foreground/20 mx-auto mb-4" />
-              <h2 className="font-heading font-bold text-2xl mb-2">No Favorites Yet</h2>
-              <p className="text-muted-foreground mb-6">
-                Start adding pizzas to your favorites by clicking the heart icon on any pizza!
-              </p>
-              <Button size="lg">Browse Menu</Button>
+              <Heart className="mx-auto mb-4 h-20 w-20 text-muted-foreground/20" />
+              <h2 className="mb-2 font-heading text-2xl font-bold">No favorites yet</h2>
+              <p className="mb-6 text-muted-foreground">Tap the heart on any pizza card to add it here dynamically.</p>
+              <Button size="lg" onClick={() => (window.location.href = "/#menu")}>Browse Menu</Button>
             </motion.div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {favoritesView.map((pizza, index) => (
+                <motion.article
+                  key={pizza.id}
+                  initial={{ opacity: 0, y: 22 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.35, delay: index * 0.06 }}
+                  className="group overflow-hidden rounded-2xl border bg-background shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
+                >
+                  <div className="relative">
+                    <SmartImage
+                      src={pizza.displayImage}
+                      fallbackSrc={getPizzaImageByName(pizza.name)}
+                      alt={pizza.name}
+                      className="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute right-4 top-4">
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="rounded-full bg-white/90 shadow-md backdrop-blur hover:bg-white"
+                        onClick={() => removeFavorite(pizza.id)}
+                        aria-label={`Remove ${pizza.name} from favorites`}
+                      >
+                        <Trash2 className="h-4 w-4 text-rose-600" />
+                      </Button>
+                    </div>
+                    <div className="absolute bottom-4 left-4 right-4 flex gap-2">
+                      <Badge variant="secondary" className="bg-white/90 backdrop-blur">
+                        <Star className="mr-1 h-3 w-3 fill-yellow-500 text-yellow-500" />
+                        {pizza.rating.toFixed(1)}
+                      </Badge>
+                      <Badge variant="secondary" className="bg-white/90 backdrop-blur">
+                        {pizza.orderCount} orders
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <h3 className="mb-2 font-heading text-2xl font-bold">{pizza.name}</h3>
+                    <p className="mb-4 text-muted-foreground">{pizza.description || "Customer favorite crafted your way."}</p>
+
+                    <div className="mb-4 rounded-lg bg-muted/50 p-4">
+                      <p className="mb-2 text-sm font-semibold">Your usual</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline">{pizza.defaultSize || "Medium"}</Badge>
+                        <Badge variant="outline">{pizza.defaultCrust || "Hand Tossed"}</Badge>
+                        {(pizza.extras || []).map((extra) => (
+                          <Badge key={extra} variant="outline">
+                            {extra}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mb-4 flex items-center justify-between">
+                      <p className="font-heading text-2xl font-bold text-primary">${Number(pizza.price || 0).toFixed(2)}</p>
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        Last ordered {formatLastOrdered(pizza.lastOrderedAt)}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button className="flex-1 gap-2" onClick={() => handleQuickReorder(pizza.id)}>
+                        <ShoppingCart className="h-4 w-4" />
+                        Quick Reorder
+                      </Button>
+                      <Button variant="outline" className="flex-1 bg-transparent" onClick={() => (window.location.href = "/#menu")}>
+                        Customize
+                      </Button>
+                    </div>
+                  </div>
+                </motion.article>
+              ))}
+            </div>
+          )}
+
+          {loadingOrders && (
+            <p className="mt-6 text-center text-sm text-muted-foreground">Updating your latest order stats...</p>
           )}
         </div>
       </main>

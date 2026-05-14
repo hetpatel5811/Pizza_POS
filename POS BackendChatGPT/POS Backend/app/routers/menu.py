@@ -49,9 +49,23 @@ def _sync_inventory_for_menu_item(db: Session, menu_item: models.MenuItem) -> No
 
 
 def _serialize_menu_item(item: models.MenuItem) -> dict:
-    out = {**item.__dict__}
-    out["category_name"] = item.category.name if item.category else None
-    return out
+    return {
+        "id": item.id,
+        "name": item.name,
+        "description": item.description,
+        "image_url": item.image_url,
+        "category_id": item.category_id,
+        "price_small": item.price_small,
+        "price_medium": item.price_medium,
+        "price_large": item.price_large,
+        "is_popular": item.is_popular,
+        "is_spicy": item.is_spicy,
+        "is_active": item.is_active,
+        "is_deal": item.is_deal,
+        "created_at": item.created_at,
+        "updated_at": getattr(item, "updated_at", None),
+        "category_name": item.category.name if item.category else None,
+    }
 
 
 def _normalize_key(value: Optional[str]) -> str:

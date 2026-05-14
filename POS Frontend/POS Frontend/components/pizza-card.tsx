@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { Flame, Plus, Star } from "lucide-react"
+import { Flame, Heart, Plus, Star } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { useCart } from "@/lib/cart-context"
 import { getPizzaImageByName } from "@/lib/customer-images"
 import { type MenuItemRead } from "@/lib/api/menu"
 import { SmartImage } from "@/components/smart-image"
+import { useFavorites } from "@/hooks/useFavorites"
 
 type PizzaCardItem = MenuItemRead & {
   displayImage?: string
@@ -28,6 +29,7 @@ const currencyFormatter = new Intl.NumberFormat("en-CA", {
 
 export function PizzaCard({ pizza }: PizzaCardProps) {
   const { addItem } = useCart()
+  const { toggleFavorite, isFavorite } = useFavorites()
   const [showCustomizer, setShowCustomizer] = useState(false)
 
   const prices = {
@@ -38,6 +40,7 @@ export function PizzaCard({ pizza }: PizzaCardProps) {
   const baseMediumPrice = prices.medium || prices.small || prices.large || 0
 
   const displayImage = pizza.displayImage || pizza.image_url || getPizzaImageByName(pizza.name)
+  const liked = isFavorite(pizza.id, pizza.name)
 
   const sizeOptions = useMemo(
     () => [
@@ -57,6 +60,19 @@ export function PizzaCard({ pizza }: PizzaCardProps) {
       size: "medium",
       quantity: 1,
       image: displayImage,
+    })
+  }
+
+  const handleToggleFavorite = () => {
+    toggleFavorite({
+      menuItemId: pizza.id,
+      name: pizza.name,
+      description: pizza.description || "Freshly prepared with quality ingredients.",
+      image: displayImage,
+      price: baseMediumPrice,
+      rating: pizza.is_popular ? 4.9 : 4.7,
+      defaultSize: "Medium",
+      defaultCrust: "Hand Tossed",
     })
   }
 
@@ -94,6 +110,17 @@ export function PizzaCard({ pizza }: PizzaCardProps) {
                 </Badge>
               )}
             </div>
+
+            <Button
+              type="button"
+              size="icon"
+              variant="secondary"
+              className="absolute right-3 top-3 rounded-full bg-white/90 shadow-md backdrop-blur hover:bg-white"
+              onClick={handleToggleFavorite}
+              aria-label={liked ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart className={`h-4 w-4 ${liked ? "fill-primary text-primary" : "text-slate-600"}`} />
+            </Button>
           </div>
 
           <CardContent className="flex flex-1 flex-col p-5">

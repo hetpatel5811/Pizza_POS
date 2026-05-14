@@ -3,43 +3,51 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import { useEffect, useMemo, useState } from "react"
 import { ChevronRight, Clock, Heart, LogOut, MapPin, Settings, Sparkles, X } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { useFavorites } from "@/hooks/useFavorites"
 import useAuth from "@/hooks/useAuth"
+import { listCustomerOrders } from "@/lib/api/customerOrders"
 
 interface UserProfileProps {
   isOpen: boolean
   onClose: () => void
 }
 
-const ACTIONS = [
-  {
-    href: "/order-history",
-    label: "Order History",
-    description: "Track and repeat your recent orders",
-    icon: Clock,
-  },
-  {
-    href: "/favorite-pizzas",
-    label: "Favorite Pizzas",
-    description: "Access your saved custom picks",
-    icon: Heart,
-  },
-  {
-    href: "/account-settings",
-    label: "Account Settings",
-    description: "Update personal details and preferences",
-    icon: Settings,
-  },
-]
-
 export function UserProfile({ isOpen, onClose }: UserProfileProps) {
   const { user, logout } = useAuth()
+  const { favorites } = useFavorites()
   const router = useRouter()
+  const [orderCount, setOrderCount] = useState(0)
 
-  if (!isOpen) return null
+  useEffect(() => {
+    let active = true
+
+    const loadOrderCount = async () => {
+      if (!isOpen || !user) {
+        setOrderCount(0)
+        return
+      }
+
+      try {
+        const orders = await listCustomerOrders({ limit: 200 })
+        if (!active) return
+        setOrderCount(Array.isArray(orders) ? orders.length : 0)
+      } catch {
+        if (!active) return
+        setOrderCount(0)
+      }
+    }
+
+    loadOrderCount()
+
+    return () => {
+      active = false
+    }
+  }, [isOpen, user])
 
   const initials =
     user?.name
@@ -48,16 +56,56 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
       .join("")
       .toUpperCase() || "U"
 
+  const avatarStorageKey = useMemo(() => {
+    if (!user) return "fhp:profile-avatar:guest"
+    if (typeof user.id === "number") return `fhp:profile-avatar:id:${user.id}`
+    return `fhp:profile-avatar:email:${user.email.toLowerCase()}`
+  }, [user])
+
+  const localAvatar =
+    typeof window !== "undefined" && (user?.id || user?.email)
+      ? localStorage.getItem(avatarStorageKey)
+      : null
+
   const avatarUrl =
-    user?.name
+    localAvatar || (user?.name
       ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`
-      : "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest"
+      : "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest")
+
+  const actions = useMemo(
+    () => [
+      {
+        href: "/order-history",
+        label: "Order History",
+        description: orderCount > 0 ? `${orderCount} orders available` : "Track and repeat your recent orders",
+        countLabel: orderCount > 0 ? String(orderCount) : null,
+        icon: Clock,
+      },
+      {
+        href: "/favorite-pizzas",
+        label: "Favorite Pizzas",
+        description: favorites.length > 0 ? `${favorites.length} pizzas saved` : "Access your saved custom picks",
+        countLabel: favorites.length > 0 ? String(favorites.length) : null,
+        icon: Heart,
+      },
+      {
+        href: "/account-settings",
+        label: "Account Settings",
+        description: "Update personal details and profile photo",
+        countLabel: null,
+        icon: Settings,
+      },
+    ],
+    [favorites.length, orderCount],
+  )
 
   const handleLogout = () => {
     logout()
     onClose()
     router.push("/login")
   }
+
+  if (!isOpen) return null
 
   return (
     <>
@@ -117,7 +165,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
             </div>
 
             <div className="mb-5 space-y-3">
-              {ACTIONS.map((action) => {
+              {actions.map((action) => {
                 const Icon = action.icon
                 return (
                   <Link key={action.href} href={action.href} onClick={onClose} className="group block">
@@ -130,6 +178,11 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
                           <p className="font-heading text-lg font-semibold text-[#2f1a10]">{action.label}</p>
                           <p className="text-xs text-foreground/65">{action.description}</p>
                         </div>
+                        {action.countLabel && (
+                          <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                            {action.countLabel}
+                          </span>
+                        )}
                         <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                       </div>
                     </div>

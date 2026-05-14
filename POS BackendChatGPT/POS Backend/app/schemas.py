@@ -302,6 +302,11 @@ class AdminUserCreate(BaseModel):
 class UpdateUserRole(BaseModel):
     role: UserRole
 
+class UserProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+
 # -----------------------------
 # ADDRESS SCHEMAS
 # -----------------------------
@@ -324,6 +329,44 @@ class AddressCreate(AddressBase):
 class AddressRead(AddressBase):
     id: int
     is_default: bool
+
+    class Config:
+        from_attributes = True
+
+
+class FavoritePizzaBase(BaseModel):
+    menu_item_id: Optional[int] = None
+    name: str
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    price: float = 0.0
+    rating: Optional[float] = None
+    default_size: Optional[str] = None
+    default_crust: Optional[str] = None
+    extras: List[str] = []
+
+
+class FavoritePizzaCreate(FavoritePizzaBase):
+    pass
+
+
+class FavoritePizzaUpdate(BaseModel):
+    menu_item_id: Optional[int] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    price: Optional[float] = None
+    rating: Optional[float] = None
+    default_size: Optional[str] = None
+    default_crust: Optional[str] = None
+    extras: Optional[List[str]] = None
+
+
+class FavoritePizzaRead(FavoritePizzaBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

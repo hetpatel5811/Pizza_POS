@@ -4,7 +4,15 @@ from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime, timedelta
 from typing import Annotated
-from app.schemas import UserCreate, UserLogin, TokenResponse, UserRead, AdminUserCreate, UpdateUserRole
+from app.schemas import (
+    UserCreate,
+    UserLogin,
+    TokenResponse,
+    UserRead,
+    AdminUserCreate,
+    UpdateUserRole,
+    UserProfileUpdate,
+)
 from app.models import User, UserRole
 from app.deps import get_db, get_current_user, require_roles
 from app.config import settings
@@ -130,6 +138,44 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserRead)
 def me(user: User = Depends(get_current_user)):
+    return UserRead(
+        id=user.id, name=user.name, email=user.email, phone=user.phone, role=user.role
+    )
+
+
+@router.patch("/me", response_model=UserRead)
+def update_my_profile(
+    payload: UserProfileUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    updates = payload.dict(exclude_unset=True)
+    if not updates:
+        return UserRead(
+            id=user.id, name=user.name, email=user.email, phone=user.phone, role=user.role
+        )
+
+    if "email" in updates:
+        next_email = str(updates["email"]).strip().lower()
+        existing = db.query(User).filter(User.email == next_email, User.id != user.id).first()
+        if existing:
+            raise HTTPException(400, "Email already registered")
+        user.email = next_email
+
+    if "name" in updates:
+        next_name = str(updates["name"]).strip()
+        if not next_name:
+            raise HTTPException(400, "Name cannot be empty")
+        user.name = next_name
+
+    if "phone" in updates:
+        next_phone = str(updates["phone"]).strip()
+        if not next_phone:
+            raise HTTPException(400, "Phone cannot be empty")
+        user.phone = next_phone
+
+    db.commit()
+    db.refresh(user)
     return UserRead(
         id=user.id, name=user.name, email=user.email, phone=user.phone, role=user.role
     )

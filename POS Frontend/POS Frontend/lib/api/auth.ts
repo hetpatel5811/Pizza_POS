@@ -43,3 +43,20 @@ export async function me(token: string) {
   if (!res.ok) throw new Error(await parseError(res));
   return res.json();
 }
+
+export async function updateMe(
+  token: string,
+  data: { name?: string; email?: string; phone?: string }
+) {
+  const res = await fetch(`${BASE_URL}/me`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json();
+}
